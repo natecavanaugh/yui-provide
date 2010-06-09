@@ -47,6 +47,8 @@ Internally, it will queue up the function calls until the loader has finished an
 
 After the loader loads it's module list, the function will never go through the loader again.
 
+It's also smart enough to handle methods that have been displaced with the AOP method like Y.Do.before and Y.Do.after. If you have displaced a method by name with either of those methods, YUI.provide will be smart enough to handle it.
+
 
 Downsides to this method
 =========================================
