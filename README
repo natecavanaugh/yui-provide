@@ -1,0 +1,64 @@
+A utility to allow you to create globally accessible functions that have YUI dependencies that will be loaded asynchronously.
+
+For example, if you create 
+
+function addXY(x, y) {
+	YUI().Module1(x) + YUI().Module2(y);
+}
+
+This function may need to use multiple modules and load them in asynchronously. However, the function may need to be called globally at any time or it may need to be called multiple times.
+
+There are two issues here:
+If you do
+YUI().use('module1', 'module2', function(Y){
+	function addXY(x, y) {
+		Y.Module1(x) + Y.Module2(y);
+	}
+});
+
+And a user tries to call addXY() before module1 and module2 have been loaded, then an error will be thrown.
+
+However, if you do
+function addXY(x, y) {
+	YUI().use('module1', 'module2', function(Y){
+		Y.Module1(x) + Y.Module2(y);
+	});
+}
+
+Then every time the user calls addXY, it will have to go through the loader, and this can get slow pretty quickly (roughly 40-50ms for every call).
+It's a small performance hit for 1 or two calls, but if it's a function that could be multiple times, 50ms * 5 becomes quite noticeable.
+
+What this does
+=========================================
+
+You define a function like this:
+
+YUI.provide(window, 'addXY', function(x, y){
+	Y.Module1(x) + Y.Module2(y);
+}, ['module1', 'module2']);
+
+and you can call it anywhere exactly like you would like any normal function:
+
+addXY(1, 2);
+
+You could also run it multiple times, and the loader will only be called once for that function.
+
+Internally, it will queue up the function calls until the loader has finished and then fire them all through the queue.
+
+After the loader loads it's module list, the function will never go through the loader again.
+
+
+Downsides to this method
+=========================================
+
+There is one downside to this method, which is that functions cannot return data. This is because of the async nature of the functions.
+The work around I've come up with is to define your function with a callback like so:
+
+YUI.provide(window, 'addXY', function(x, y, callback){
+	if (callback) {
+		callback(Y.Module1(x) + Y.Module2(y));
+	}
+}, ['module1', 'module2']);
+
+The other "downside", but could be changed, is that this function currently requires the oop module to be preloaded onto the page.
+
